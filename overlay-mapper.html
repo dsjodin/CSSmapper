@@ -151,6 +151,24 @@
         .overlay img {
             display: block;
             max-width: none;
+            transform-origin: top left;
+        }
+
+        .overlay .resize-handle {
+            position: absolute;
+            bottom: -6px;
+            right: -6px;
+            width: 12px;
+            height: 12px;
+            background: #00d4ff;
+            border: 2px solid #16213e;
+            border-radius: 2px;
+            cursor: se-resize;
+            display: none;
+        }
+
+        .overlay:hover .resize-handle, .overlay.selected .resize-handle {
+            display: block;
         }
 
         .overlay .delete-btn {
@@ -299,6 +317,32 @@
             color: #eee;
         }
 
+        .position-inputs input[type="range"] {
+            width: 120px;
+            accent-color: #00d4ff;
+        }
+
+        .scale-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: #16213e;
+            border-radius: 4px;
+        }
+
+        .scale-row label {
+            margin-bottom: 0;
+            flex-shrink: 0;
+        }
+
+        .scale-value {
+            font-family: monospace;
+            color: #00d4ff;
+            min-width: 45px;
+        }
+
         .selected-info {
             font-size: 11px;
             color: #00d4ff;
@@ -342,6 +386,12 @@
                 </div>
                 <div class="position-inputs" id="position-inputs">
                     <div class="selected-info" id="selected-info">No overlay selected</div>
+                    <div class="scale-row">
+                        <label>Scale:</label>
+                        <input type="range" id="input-scale-slider" min="0.1" max="3" step="0.05" value="1">
+                        <input type="number" id="input-scale" min="0.1" max="5" step="0.05" value="1" style="width: 60px;">
+                        <span class="scale-value" id="scale-display">100%</span>
+                    </div>
                     <label>
                         Left (px): <input type="number" id="input-left" value="0">
                     </label>
@@ -457,6 +507,7 @@
             overlay.id = id;
             overlay.innerHTML = `
                 <img src="${imageName}" alt="${imageName}">
+                <div class="resize-handle" data-id="${id}"></div>
                 <button class="delete-btn" onclick="removeOverlay('${id}')">&times;</button>
             `;
 
@@ -476,7 +527,10 @@
                     left,
                     top,
                     width: img.width,
-                    height: img.height
+                    height: img.height,
+                    originalWidth: img.width,
+                    originalHeight: img.height,
+                    scale: 1
                 });
 
                 updateActiveList();
@@ -486,13 +540,77 @@
             // Make overlay draggable
             makeDraggable(overlay);
 
+            // Make overlay resizable
+            makeResizable(overlay);
+
             // Click to select
             overlay.addEventListener('click', (e) => {
                 if (e.target.classList.contains('delete-btn')) return;
+                if (e.target.classList.contains('resize-handle')) return;
                 selectOverlay(id);
             });
 
             canvasWrapper.appendChild(overlay);
+        }
+
+        // Make overlay resizable via handle
+        function makeResizable(element) {
+            const handle = element.querySelector('.resize-handle');
+            let isResizing = false;
+            let startX, startY, startScale, overlayData;
+
+            handle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                isResizing = true;
+                startX = e.clientX;
+                startY = e.clientY;
+
+                overlayData = placedOverlays.find(o => o.id === element.id);
+                startScale = overlayData ? overlayData.scale : 1;
+
+                selectOverlay(element.id);
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing || !overlayData) return;
+
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                const delta = (dx + dy) / 2;
+                const scaleChange = delta / 100;
+
+                const newScale = Math.max(0.1, Math.min(5, startScale + scaleChange));
+                updateOverlayScale(element.id, newScale);
+            });
+
+            document.addEventListener('mouseup', () => {
+                isResizing = false;
+            });
+        }
+
+        // Update overlay scale
+        function updateOverlayScale(id, scale) {
+            const overlay = placedOverlays.find(o => o.id === id);
+            const element = document.getElementById(id);
+
+            if (overlay && element) {
+                overlay.scale = scale;
+                overlay.width = overlay.originalWidth * scale;
+                overlay.height = overlay.originalHeight * scale;
+
+                const img = element.querySelector('img');
+                img.style.transform = `scale(${scale})`;
+
+                // Update resize handle position
+                const handle = element.querySelector('.resize-handle');
+                handle.style.bottom = `${-6 - (overlay.originalHeight * (scale - 1))}px`;
+                handle.style.right = `${-6 - (overlay.originalWidth * (scale - 1))}px`;
+
+                updateActiveList();
+                updatePositionInputs();
+                generateCSS();
+            }
         }
 
         // Make overlay draggable within canvas
@@ -502,6 +620,7 @@
 
             element.addEventListener('mousedown', (e) => {
                 if (e.target.classList.contains('delete-btn')) return;
+                if (e.target.classList.contains('resize-handle')) return;
                 isDragging = true;
                 element.classList.add('selected');
 
@@ -569,6 +688,11 @@
             document.getElementById('input-top').value = Math.round(overlay.top);
             document.getElementById('input-left-pct').value = ((overlay.left / bgWidth) * 100).toFixed(1);
             document.getElementById('input-top-pct').value = ((overlay.top / bgHeight) * 100).toFixed(1);
+
+            // Update scale inputs
+            document.getElementById('input-scale').value = overlay.scale.toFixed(2);
+            document.getElementById('input-scale-slider').value = overlay.scale;
+            document.getElementById('scale-display').textContent = `${Math.round(overlay.scale * 100)}%`;
         }
 
         // Position input handlers
@@ -590,6 +714,19 @@
             const bgImg = document.getElementById('background-image');
             const bgHeight = bgImg.naturalHeight || bgImg.height;
             updateOverlayPosition('top', (parseFloat(e.target.value) / 100) * bgHeight);
+        });
+
+        // Scale input handlers
+        document.getElementById('input-scale').addEventListener('change', (e) => {
+            if (selectedOverlay) {
+                updateOverlayScale(selectedOverlay, parseFloat(e.target.value));
+            }
+        });
+
+        document.getElementById('input-scale-slider').addEventListener('input', (e) => {
+            if (selectedOverlay) {
+                updateOverlayScale(selectedOverlay, parseFloat(e.target.value));
+            }
         });
 
         function updateOverlayPosition(prop, value) {
@@ -639,10 +776,11 @@
             container.innerHTML = placedOverlays.map(o => {
                 const leftPct = ((o.left / bgWidth) * 100).toFixed(1);
                 const topPct = ((o.top / bgHeight) * 100).toFixed(1);
+                const scalePercent = Math.round((o.scale || 1) * 100);
                 return `
                     <div class="active-overlay-item" onclick="selectOverlay('${o.id}')">
                         <span>${o.image.replace('.png', '').replace('.gif', '')}</span>
-                        <span class="coords">${Math.round(o.left)}, ${Math.round(o.top)} (${leftPct}%, ${topPct}%)</span>
+                        <span class="coords">${Math.round(o.left)}, ${Math.round(o.top)} @ ${scalePercent}%</span>
                     </div>
                 `;
             }).join('');
@@ -674,6 +812,7 @@
                 const name = o.image.replace('.png', '').replace('.gif', '').replace(/-/g, '_');
                 const leftPct = ((o.left / bgWidth) * 100).toFixed(2);
                 const topPct = ((o.top / bgHeight) * 100).toFixed(2);
+                const scale = o.scale || 1;
 
                 css += `/* ${o.image} */\n`;
                 css += `.overlay-${name} {\n`;
@@ -681,8 +820,14 @@
                 css += `    left: ${leftPct}%;   /* ${Math.round(o.left)}px */\n`;
                 css += `    top: ${topPct}%;    /* ${Math.round(o.top)}px */\n`;
                 css += `    background-image: url('${o.image}');\n`;
-                css += `    width: ${o.width}px;\n`;
-                css += `    height: ${o.height}px;\n`;
+                css += `    background-size: contain;\n`;
+                css += `    background-repeat: no-repeat;\n`;
+                css += `    width: ${Math.round(o.width)}px;   /* original: ${o.originalWidth}px, scale: ${scale.toFixed(2)} */\n`;
+                css += `    height: ${Math.round(o.height)}px;  /* original: ${o.originalHeight}px, scale: ${scale.toFixed(2)} */\n`;
+                if (scale !== 1) {
+                    css += `    /* Alternative: use transform for sharper scaling */\n`;
+                    css += `    /* width: ${o.originalWidth}px; height: ${o.originalHeight}px; transform: scale(${scale.toFixed(2)}); transform-origin: top left; */\n`;
+                }
                 css += `    display: none;  /* Toggle with .active */\n`;
                 css += `}\n`;
                 css += `.overlay-${name}.active {\n`;
