@@ -668,6 +668,8 @@
                     // Update overlay div dimensions for spinning
                     element.style.width = `${overlay.width}px`;
                     element.style.height = `${overlay.height}px`;
+                    // Update transform-origin for new size
+                    element.style.transformOrigin = `${overlay.width / 2}px ${overlay.height / 2}px`;
                 } else {
                     img.style.transform = `scale(${scale})`;
                 }
@@ -832,6 +834,8 @@
                     // Set overlay div dimensions for correct center calculation
                     element.style.width = `${overlay.width}px`;
                     element.style.height = `${overlay.height}px`;
+                    // Set explicit transform-origin in pixels
+                    element.style.transformOrigin = `${overlay.width / 2}px ${overlay.height / 2}px`;
                     // Set img to fill the container
                     img.style.width = '100%';
                     img.style.height = '100%';
@@ -841,6 +845,7 @@
                     element.style.animationDuration = '';
                     element.style.width = '';
                     element.style.height = '';
+                    element.style.transformOrigin = '';
                     // Restore img to original size with transform scale
                     img.style.width = '';
                     img.style.height = '';
