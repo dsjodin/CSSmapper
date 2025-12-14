@@ -399,6 +399,110 @@
             animation: spin linear infinite;
             transform-origin: center;
         }
+
+        /* Text placeholder styles */
+        .text-placeholder {
+            position: absolute;
+            cursor: move;
+            padding: 2px 4px;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+            white-space: nowrap;
+        }
+
+        .text-placeholder:hover, .text-placeholder.selected {
+            border-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .text-placeholder .delete-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 20px;
+            height: 20px;
+            background: #e94560;
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .text-placeholder:hover .delete-btn, .text-placeholder.selected .delete-btn {
+            display: flex;
+        }
+
+        .text-add-form {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .text-add-form input, .text-add-form select {
+            padding: 8px;
+            border: 1px solid #0f3460;
+            border-radius: 4px;
+            background: #1a1a2e;
+            color: #eee;
+            font-size: 12px;
+        }
+
+        .text-add-form .form-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .text-add-form .form-row label {
+            font-size: 11px;
+            min-width: 50px;
+        }
+
+        .text-add-form .form-row input[type="number"] {
+            width: 60px;
+        }
+
+        .text-add-form .form-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #00d4ff;
+        }
+
+        .text-add-form .form-row input[type="color"] {
+            width: 40px;
+            height: 28px;
+            padding: 0;
+            border: none;
+            cursor: pointer;
+        }
+
+        .text-indicator {
+            color: #ff6b6b;
+            font-size: 10px;
+        }
+
+        .active-overlay-item.text-item {
+            border-left: 3px solid #ff6b6b;
+        }
+
+        /* Text inputs panel */
+        .text-inputs {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            background: #1a1a2e;
+            border-radius: 6px;
+            border-left: 3px solid #ff6b6b;
+        }
+
+        .text-inputs.visible {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -431,7 +535,40 @@
             </div>
 
             <div class="panel">
-                <h3>Active Overlays</h3>
+                <h3>Text Placeholders</h3>
+                <div class="instructions">
+                    Add text labels for temperatures, values, etc.
+                </div>
+                <div class="text-add-form">
+                    <input type="text" id="text-name" placeholder="Placeholder name (e.g., temp_outdoor)">
+                    <input type="text" id="text-sample" placeholder="Sample text (e.g., 21.5°C)" value="00.0°C">
+                    <div class="form-row">
+                        <label>Size:</label>
+                        <input type="number" id="text-size" value="14" min="8" max="72">
+                        <label>Bold:</label>
+                        <input type="checkbox" id="text-bold">
+                    </div>
+                    <div class="form-row">
+                        <label>Font:</label>
+                        <select id="text-font">
+                            <option value="Arial, sans-serif">Arial</option>
+                            <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                            <option value="Helvetica, sans-serif">Helvetica</option>
+                            <option value="'Courier New', monospace">Courier New</option>
+                            <option value="Georgia, serif">Georgia</option>
+                            <option value="Verdana, sans-serif">Verdana</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Color:</label>
+                        <input type="color" id="text-color" value="#ffffff">
+                    </div>
+                    <button class="btn btn-primary" onclick="addTextPlaceholder()" style="margin-top: 5px;">Add Text</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Active Elements</h3>
                 <div class="instructions">
                     <strong>Click</strong> an overlay to select it. <strong>Drag</strong> to reposition.
                 </div>
@@ -465,6 +602,37 @@
                     </label>
                     <label>
                         Top (%): <input type="number" id="input-top-pct" step="0.1" value="0">
+                    </label>
+                </div>
+                <div class="text-inputs" id="text-inputs">
+                    <div class="selected-info" id="text-selected-info">No text selected</div>
+                    <label>
+                        Name: <input type="text" id="edit-text-name" style="width: 120px;">
+                    </label>
+                    <label>
+                        Sample: <input type="text" id="edit-text-sample" style="width: 100px;">
+                    </label>
+                    <div class="form-row" style="margin-top: 5px;">
+                        <label>Size:</label>
+                        <input type="number" id="edit-text-size" value="14" min="8" max="72" style="width: 50px;">
+                        <label>Bold:</label>
+                        <input type="checkbox" id="edit-text-bold">
+                    </div>
+                    <div class="form-row">
+                        <label>Color:</label>
+                        <input type="color" id="edit-text-color" value="#ffffff">
+                    </div>
+                    <label>
+                        Left (px): <input type="number" id="edit-text-left" value="0">
+                    </label>
+                    <label>
+                        Top (px): <input type="number" id="edit-text-top" value="0">
+                    </label>
+                    <label>
+                        Left (%): <input type="number" id="edit-text-left-pct" step="0.1" value="0">
+                    </label>
+                    <label>
+                        Top (%): <input type="number" id="edit-text-top-pct" step="0.1" value="0">
                     </label>
                 </div>
                 <div class="active-overlays" id="active-overlays">
@@ -510,6 +678,10 @@
         let placedOverlays = [];
         let selectedOverlay = null;
         let overlayIdCounter = 0;
+
+        let placedTexts = [];
+        let selectedText = null;
+        let textIdCounter = 0;
 
         // Initialize overlay list
         function initOverlayList() {
@@ -733,6 +905,12 @@
 
         // Select overlay
         function selectOverlay(id) {
+            // Deselect texts
+            document.querySelectorAll('.text-placeholder').forEach(t => t.classList.remove('selected'));
+            selectedText = null;
+            document.getElementById('text-inputs').classList.remove('visible');
+
+            // Select overlay
             document.querySelectorAll('.overlay').forEach(o => o.classList.remove('selected'));
             const overlay = document.getElementById(id);
             if (overlay) {
@@ -901,8 +1079,8 @@
         function updateActiveList() {
             const container = document.getElementById('active-overlays');
 
-            if (placedOverlays.length === 0) {
-                container.innerHTML = '<p style="color: #666; font-size: 12px;">No overlays placed yet</p>';
+            if (placedOverlays.length === 0 && placedTexts.length === 0) {
+                container.innerHTML = '<p style="color: #666; font-size: 12px;">No elements placed yet</p>';
                 return;
             }
 
@@ -910,7 +1088,10 @@
             const bgWidth = bgImg.naturalWidth || bgImg.width;
             const bgHeight = bgImg.naturalHeight || bgImg.height;
 
-            container.innerHTML = placedOverlays.map(o => {
+            let html = '';
+
+            // Overlays
+            html += placedOverlays.map(o => {
                 const leftPct = ((o.left / bgWidth) * 100).toFixed(1);
                 const topPct = ((o.top / bgHeight) * 100).toFixed(1);
                 const scalePercent = Math.round((o.scale || 1) * 100);
@@ -922,6 +1103,18 @@
                     </div>
                 `;
             }).join('');
+
+            // Texts
+            html += placedTexts.map(t => {
+                return `
+                    <div class="active-overlay-item text-item" onclick="selectText('${t.id}')">
+                        <span><span class="text-indicator">T</span> ${t.name}</span>
+                        <span class="coords">${Math.round(t.left)}, ${Math.round(t.top)}</span>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
         }
 
         // Generate CSS
@@ -931,8 +1124,8 @@
             const bgHeight = bgImg.naturalHeight || bgImg.height;
             const bgSrc = bgImg.src.split('/').pop();
 
-            if (placedOverlays.length === 0) {
-                document.getElementById('css-output').textContent = '/* Place overlays on the background to generate CSS */';
+            if (placedOverlays.length === 0 && placedTexts.length === 0) {
+                document.getElementById('css-output').textContent = '/* Place overlays or text on the background to generate CSS */';
                 return;
             }
 
@@ -959,6 +1152,7 @@
             css += `    background-repeat: no-repeat;\n`;
             css += `}\n\n`;
 
+            // Overlay CSS
             placedOverlays.forEach(o => {
                 const name = o.image.replace('.png', '').replace('.gif', '').replace(/-/g, '_');
                 const leftPct = ((o.left / bgWidth) * 100).toFixed(2);
@@ -991,6 +1185,28 @@
                 css += `}\n\n`;
             });
 
+            // Text placeholder CSS
+            if (placedTexts.length > 0) {
+                css += `/* ===== Text Placeholders ===== */\n\n`;
+                placedTexts.forEach(t => {
+                    const leftPct = ((t.left / bgWidth) * 100).toFixed(2);
+                    const topPct = ((t.top / bgHeight) * 100).toFixed(2);
+                    const safeName = t.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+                    css += `/* Text: ${t.name} */\n`;
+                    css += `.text-${safeName} {\n`;
+                    css += `    position: absolute;\n`;
+                    css += `    left: ${leftPct}%;   /* ${Math.round(t.left)}px */\n`;
+                    css += `    top: ${topPct}%;    /* ${Math.round(t.top)}px */\n`;
+                    css += `    font-family: ${t.font};\n`;
+                    css += `    font-size: ${t.size}px;\n`;
+                    css += `    font-weight: ${t.bold ? 'bold' : 'normal'};\n`;
+                    css += `    color: ${t.color};\n`;
+                    css += `    white-space: nowrap;\n`;
+                    css += `}\n\n`;
+                });
+            }
+
             document.getElementById('css-output').textContent = css;
         }
 
@@ -1007,10 +1223,19 @@
             const bgSrc = bgImg.src.split('/').pop();
 
             let html = `<div class="heatpump-display">\n`;
+
+            // Overlays
             placedOverlays.forEach(o => {
                 const name = o.image.replace('.png', '').replace('.gif', '').replace(/-/g, '_');
                 html += `    <div class="overlay-${name}"></div>\n`;
             });
+
+            // Text placeholders
+            placedTexts.forEach(t => {
+                const safeName = t.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+                html += `    <span class="text-${safeName}">{{${t.name}}}</span>\n`;
+            });
+
             html += `</div>`;
 
             navigator.clipboard.writeText(html).then(() => {
@@ -1019,6 +1244,7 @@
         }
 
         function clearAll() {
+            // Clear overlays
             placedOverlays.forEach(o => {
                 const element = document.getElementById(o.id);
                 if (element) element.remove();
@@ -1026,6 +1252,16 @@
             placedOverlays = [];
             selectedOverlay = null;
             document.getElementById('position-inputs').classList.remove('visible');
+
+            // Clear texts
+            placedTexts.forEach(t => {
+                const element = document.getElementById(t.id);
+                if (element) element.remove();
+            });
+            placedTexts = [];
+            selectedText = null;
+            document.getElementById('text-inputs').classList.remove('visible');
+
             updateActiveList();
             generateCSS();
         }
@@ -1038,6 +1274,255 @@
                 setTimeout(generateCSS, 100);
             });
         });
+
+        // ============== TEXT PLACEHOLDER FUNCTIONS ==============
+
+        function addTextPlaceholder() {
+            const name = document.getElementById('text-name').value.trim();
+            const sample = document.getElementById('text-sample').value || '00.0°C';
+            const size = parseInt(document.getElementById('text-size').value) || 14;
+            const bold = document.getElementById('text-bold').checked;
+            const font = document.getElementById('text-font').value;
+            const color = document.getElementById('text-color').value;
+
+            if (!name) {
+                alert('Please enter a placeholder name');
+                return;
+            }
+
+            const id = `text-${textIdCounter++}`;
+            const canvasWrapper = document.getElementById('canvas-wrapper');
+
+            const textEl = document.createElement('div');
+            textEl.className = 'text-placeholder';
+            textEl.id = id;
+            textEl.innerHTML = `
+                <span class="text-content">${sample}</span>
+                <button class="delete-btn" onclick="removeText('${id}')">&times;</button>
+            `;
+
+            // Style the text
+            textEl.style.fontSize = `${size}px`;
+            textEl.style.fontFamily = font;
+            textEl.style.fontWeight = bold ? 'bold' : 'normal';
+            textEl.style.color = color;
+            textEl.style.left = '50px';
+            textEl.style.top = '50px';
+
+            const textData = {
+                id,
+                name,
+                sample,
+                size,
+                bold,
+                font,
+                color,
+                left: 50,
+                top: 50
+            };
+
+            placedTexts.push(textData);
+
+            // Make text draggable
+            makeTextDraggable(textEl);
+
+            // Click to select
+            textEl.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-btn')) return;
+                selectText(id);
+            });
+
+            canvasWrapper.appendChild(textEl);
+
+            // Clear the name input
+            document.getElementById('text-name').value = '';
+
+            updateActiveList();
+            generateCSS();
+        }
+
+        function makeTextDraggable(element) {
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+
+            element.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('delete-btn')) return;
+                isDragging = true;
+                element.classList.add('selected');
+
+                startX = e.clientX;
+                startY = e.clientY;
+                initialLeft = parseInt(element.style.left) || 0;
+                initialTop = parseInt(element.style.top) || 0;
+
+                selectText(element.id);
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+
+                const newLeft = Math.max(0, initialLeft + dx);
+                const newTop = Math.max(0, initialTop + dy);
+
+                element.style.left = `${newLeft}px`;
+                element.style.top = `${newTop}px`;
+
+                // Update stored position
+                const text = placedTexts.find(t => t.id === element.id);
+                if (text) {
+                    text.left = newLeft;
+                    text.top = newTop;
+                }
+
+                updateActiveList();
+                updateTextInputs();
+                generateCSS();
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+        }
+
+        function selectText(id) {
+            // Deselect overlays
+            document.querySelectorAll('.overlay').forEach(o => o.classList.remove('selected'));
+            selectedOverlay = null;
+            document.getElementById('position-inputs').classList.remove('visible');
+
+            // Deselect other texts
+            document.querySelectorAll('.text-placeholder').forEach(t => t.classList.remove('selected'));
+
+            const textEl = document.getElementById(id);
+            if (textEl) {
+                textEl.classList.add('selected');
+                selectedText = id;
+                updateTextInputs();
+                document.getElementById('text-inputs').classList.add('visible');
+            }
+        }
+
+        function updateTextInputs() {
+            const text = placedTexts.find(t => t.id === selectedText);
+            if (!text) return;
+
+            const bgImg = document.getElementById('background-image');
+            const bgWidth = bgImg.naturalWidth || bgImg.width;
+            const bgHeight = bgImg.naturalHeight || bgImg.height;
+
+            document.getElementById('text-selected-info').textContent = `Selected: ${text.name}`;
+            document.getElementById('edit-text-name').value = text.name;
+            document.getElementById('edit-text-sample').value = text.sample;
+            document.getElementById('edit-text-size').value = text.size;
+            document.getElementById('edit-text-bold').checked = text.bold;
+            document.getElementById('edit-text-color').value = text.color;
+            document.getElementById('edit-text-left').value = Math.round(text.left);
+            document.getElementById('edit-text-top').value = Math.round(text.top);
+            document.getElementById('edit-text-left-pct').value = ((text.left / bgWidth) * 100).toFixed(1);
+            document.getElementById('edit-text-top-pct').value = ((text.top / bgHeight) * 100).toFixed(1);
+        }
+
+        function removeText(id) {
+            const element = document.getElementById(id);
+            if (element) element.remove();
+
+            placedTexts = placedTexts.filter(t => t.id !== id);
+
+            if (selectedText === id) {
+                selectedText = null;
+                document.getElementById('text-inputs').classList.remove('visible');
+            }
+
+            updateActiveList();
+            generateCSS();
+        }
+
+        // Text input handlers
+        document.getElementById('edit-text-name').addEventListener('change', (e) => {
+            updateTextProperty('name', e.target.value);
+        });
+
+        document.getElementById('edit-text-sample').addEventListener('change', (e) => {
+            updateTextProperty('sample', e.target.value);
+            const textEl = document.getElementById(selectedText);
+            if (textEl) {
+                textEl.querySelector('.text-content').textContent = e.target.value;
+            }
+        });
+
+        document.getElementById('edit-text-size').addEventListener('change', (e) => {
+            const size = parseInt(e.target.value);
+            updateTextProperty('size', size);
+            const textEl = document.getElementById(selectedText);
+            if (textEl) {
+                textEl.style.fontSize = `${size}px`;
+            }
+        });
+
+        document.getElementById('edit-text-bold').addEventListener('change', (e) => {
+            updateTextProperty('bold', e.target.checked);
+            const textEl = document.getElementById(selectedText);
+            if (textEl) {
+                textEl.style.fontWeight = e.target.checked ? 'bold' : 'normal';
+            }
+        });
+
+        document.getElementById('edit-text-color').addEventListener('change', (e) => {
+            updateTextProperty('color', e.target.value);
+            const textEl = document.getElementById(selectedText);
+            if (textEl) {
+                textEl.style.color = e.target.value;
+            }
+        });
+
+        document.getElementById('edit-text-left').addEventListener('change', (e) => {
+            updateTextPosition('left', parseInt(e.target.value));
+        });
+
+        document.getElementById('edit-text-top').addEventListener('change', (e) => {
+            updateTextPosition('top', parseInt(e.target.value));
+        });
+
+        document.getElementById('edit-text-left-pct').addEventListener('change', (e) => {
+            const bgImg = document.getElementById('background-image');
+            const bgWidth = bgImg.naturalWidth || bgImg.width;
+            updateTextPosition('left', (parseFloat(e.target.value) / 100) * bgWidth);
+        });
+
+        document.getElementById('edit-text-top-pct').addEventListener('change', (e) => {
+            const bgImg = document.getElementById('background-image');
+            const bgHeight = bgImg.naturalHeight || bgImg.height;
+            updateTextPosition('top', (parseFloat(e.target.value) / 100) * bgHeight);
+        });
+
+        function updateTextProperty(prop, value) {
+            if (!selectedText) return;
+            const text = placedTexts.find(t => t.id === selectedText);
+            if (text) {
+                text[prop] = value;
+                updateActiveList();
+                generateCSS();
+            }
+        }
+
+        function updateTextPosition(prop, value) {
+            if (!selectedText) return;
+
+            const text = placedTexts.find(t => t.id === selectedText);
+            const element = document.getElementById(selectedText);
+
+            if (text && element) {
+                text[prop] = value;
+                element.style[prop] = `${value}px`;
+                updateActiveList();
+                updateTextInputs();
+                generateCSS();
+            }
+        }
 
         // Initialize
         initOverlayList();
