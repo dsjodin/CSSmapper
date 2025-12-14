@@ -397,7 +397,7 @@
 
         .overlay img.spinning {
             animation: spin linear infinite;
-            transform-origin: center center;
+            transform-origin: center center !important;
             /* Width/height set via JS for correct center rotation */
         }
     </style>
@@ -833,12 +833,14 @@
                     img.style.width = `${overlay.width}px`;
                     img.style.height = `${overlay.height}px`;
                     img.style.transform = '';
+                    img.style.transformOrigin = 'center center';
                 } else {
                     img.classList.remove('spinning');
                     // Restore to original size with transform scale
                     img.style.width = '';
                     img.style.height = '';
                     img.style.transform = `scale(${overlay.scale})`;
+                    img.style.transformOrigin = 'top left';
                 }
 
                 // Update resize handle position
