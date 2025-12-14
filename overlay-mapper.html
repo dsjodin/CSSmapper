@@ -348,6 +348,56 @@
             color: #00d4ff;
             margin-bottom: 8px;
         }
+
+        .option-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: #16213e;
+            border-radius: 4px;
+        }
+
+        .option-row label {
+            margin-bottom: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .option-row input[type="checkbox"] {
+            accent-color: #00d4ff;
+            width: 16px;
+            height: 16px;
+        }
+
+        .spin-speed {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .spin-speed input {
+            width: 60px;
+        }
+
+        .spin-indicator {
+            color: #ff6b6b;
+            font-size: 10px;
+            margin-left: 4px;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .overlay img.spinning {
+            animation: spin linear infinite;
+        }
     </style>
 </head>
 <body>
@@ -391,6 +441,17 @@
                         <input type="range" id="input-scale-slider" min="0.1" max="3" step="0.05" value="1">
                         <input type="number" id="input-scale" min="0.1" max="5" step="0.05" value="1" style="width: 60px;">
                         <span class="scale-value" id="scale-display">100%</span>
+                    </div>
+                    <div class="option-row">
+                        <label>
+                            <input type="checkbox" id="input-spinning">
+                            Spinning
+                        </label>
+                        <div class="spin-speed">
+                            <span>Speed:</span>
+                            <input type="number" id="input-spin-speed" min="0.1" max="10" step="0.1" value="2">
+                            <span>s</span>
+                        </div>
                     </div>
                     <label>
                         Left (px): <input type="number" id="input-left" value="0">
@@ -530,7 +591,9 @@
                     height: img.height,
                     originalWidth: img.width,
                     originalHeight: img.height,
-                    scale: 1
+                    scale: 1,
+                    spinning: false,
+                    spinSpeed: 2
                 });
 
                 updateActiveList();
@@ -600,7 +663,10 @@
                 overlay.height = overlay.originalHeight * scale;
 
                 const img = element.querySelector('img');
-                img.style.transform = `scale(${scale})`;
+                // Only apply scale transform if not spinning (spinning uses animation)
+                if (!overlay.spinning) {
+                    img.style.transform = `scale(${scale})`;
+                }
 
                 // Update resize handle position
                 const handle = element.querySelector('.resize-handle');
@@ -693,6 +759,10 @@
             document.getElementById('input-scale').value = overlay.scale.toFixed(2);
             document.getElementById('input-scale-slider').value = overlay.scale;
             document.getElementById('scale-display').textContent = `${Math.round(overlay.scale * 100)}%`;
+
+            // Update spinning inputs
+            document.getElementById('input-spinning').checked = overlay.spinning || false;
+            document.getElementById('input-spin-speed').value = overlay.spinSpeed || 2;
         }
 
         // Position input handlers
@@ -728,6 +798,61 @@
                 updateOverlayScale(selectedOverlay, parseFloat(e.target.value));
             }
         });
+
+        // Spinning input handlers
+        document.getElementById('input-spinning').addEventListener('change', (e) => {
+            if (selectedOverlay) {
+                updateOverlaySpinning(selectedOverlay, e.target.checked);
+            }
+        });
+
+        document.getElementById('input-spin-speed').addEventListener('change', (e) => {
+            if (selectedOverlay) {
+                updateOverlaySpinSpeed(selectedOverlay, parseFloat(e.target.value));
+            }
+        });
+
+        // Update overlay spinning state
+        function updateOverlaySpinning(id, spinning) {
+            const overlay = placedOverlays.find(o => o.id === id);
+            const element = document.getElementById(id);
+
+            if (overlay && element) {
+                overlay.spinning = spinning;
+                const img = element.querySelector('img');
+
+                if (spinning) {
+                    img.classList.add('spinning');
+                    img.style.animationDuration = `${overlay.spinSpeed}s`;
+                    // Reset transform for spinning (scale is handled differently)
+                    img.style.transform = '';
+                } else {
+                    img.classList.remove('spinning');
+                    // Restore scale transform
+                    img.style.transform = `scale(${overlay.scale})`;
+                }
+
+                updateActiveList();
+                generateCSS();
+            }
+        }
+
+        // Update overlay spin speed
+        function updateOverlaySpinSpeed(id, speed) {
+            const overlay = placedOverlays.find(o => o.id === id);
+            const element = document.getElementById(id);
+
+            if (overlay && element) {
+                overlay.spinSpeed = speed;
+                const img = element.querySelector('img');
+
+                if (overlay.spinning) {
+                    img.style.animationDuration = `${speed}s`;
+                }
+
+                generateCSS();
+            }
+        }
 
         function updateOverlayPosition(prop, value) {
             if (!selectedOverlay) return;
@@ -777,9 +902,10 @@
                 const leftPct = ((o.left / bgWidth) * 100).toFixed(1);
                 const topPct = ((o.top / bgHeight) * 100).toFixed(1);
                 const scalePercent = Math.round((o.scale || 1) * 100);
+                const spinIndicator = o.spinning ? '<span class="spin-indicator">&#x21bb;</span>' : '';
                 return `
                     <div class="active-overlay-item" onclick="selectOverlay('${o.id}')">
-                        <span>${o.image.replace('.png', '').replace('.gif', '')}</span>
+                        <span>${o.image.replace('.png', '').replace('.gif', '')}${spinIndicator}</span>
                         <span class="coords">${Math.round(o.left)}, ${Math.round(o.top)} @ ${scalePercent}%</span>
                     </div>
                 `;
@@ -798,7 +924,20 @@
                 return;
             }
 
+            // Check if any overlay is spinning
+            const hasSpinning = placedOverlays.some(o => o.spinning);
+
             let css = `/* Background: ${bgSrc} (${bgWidth}x${bgHeight}) */\n\n`;
+
+            // Add spin animation if needed
+            if (hasSpinning) {
+                css += `/* Spin animation */\n`;
+                css += `@keyframes spin {\n`;
+                css += `    from { transform: rotate(0deg); }\n`;
+                css += `    to { transform: rotate(360deg); }\n`;
+                css += `}\n\n`;
+            }
+
             css += `.heatpump-display {\n`;
             css += `    position: relative;\n`;
             css += `    width: ${bgWidth}px;\n`;
@@ -814,7 +953,7 @@
                 const topPct = ((o.top / bgHeight) * 100).toFixed(2);
                 const scale = o.scale || 1;
 
-                css += `/* ${o.image} */\n`;
+                css += `/* ${o.image}${o.spinning ? ' (spinning)' : ''} */\n`;
                 css += `.overlay-${name} {\n`;
                 css += `    position: absolute;\n`;
                 css += `    left: ${leftPct}%;   /* ${Math.round(o.left)}px */\n`;
@@ -824,7 +963,7 @@
                 css += `    background-repeat: no-repeat;\n`;
                 css += `    width: ${Math.round(o.width)}px;   /* original: ${o.originalWidth}px, scale: ${scale.toFixed(2)} */\n`;
                 css += `    height: ${Math.round(o.height)}px;  /* original: ${o.originalHeight}px, scale: ${scale.toFixed(2)} */\n`;
-                if (scale !== 1) {
+                if (scale !== 1 && !o.spinning) {
                     css += `    /* Alternative: use transform for sharper scaling */\n`;
                     css += `    /* width: ${o.originalWidth}px; height: ${o.originalHeight}px; transform: scale(${scale.toFixed(2)}); transform-origin: top left; */\n`;
                 }
@@ -832,6 +971,9 @@
                 css += `}\n`;
                 css += `.overlay-${name}.active {\n`;
                 css += `    display: block;\n`;
+                if (o.spinning) {
+                    css += `    animation: spin ${o.spinSpeed}s linear infinite;\n`;
+                }
                 css += `}\n\n`;
             });
 
