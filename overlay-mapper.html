@@ -395,10 +395,9 @@
             to { transform: rotate(360deg); }
         }
 
-        .overlay img.spinning {
+        .overlay.spinning {
             animation: spin linear infinite;
-            transform-origin: center center !important;
-            /* Width/height set via JS for correct center rotation */
+            transform-origin: center center;
         }
     </style>
 </head>
@@ -666,9 +665,9 @@
 
                 const img = element.querySelector('img');
                 if (overlay.spinning) {
-                    // Use actual width/height for spinning (so center is correct)
-                    img.style.width = `${overlay.width}px`;
-                    img.style.height = `${overlay.height}px`;
+                    // Update overlay div dimensions for spinning
+                    element.style.width = `${overlay.width}px`;
+                    element.style.height = `${overlay.height}px`;
                 } else {
                     img.style.transform = `scale(${scale})`;
                 }
@@ -827,20 +826,25 @@
                 const img = element.querySelector('img');
 
                 if (spinning) {
-                    img.classList.add('spinning');
-                    img.style.animationDuration = `${overlay.spinSpeed}s`;
-                    // Use actual width/height for spinning (so center is correct)
-                    img.style.width = `${overlay.width}px`;
-                    img.style.height = `${overlay.height}px`;
+                    // Apply spinning to the overlay div itself
+                    element.classList.add('spinning');
+                    element.style.animationDuration = `${overlay.spinSpeed}s`;
+                    // Set overlay div dimensions for correct center calculation
+                    element.style.width = `${overlay.width}px`;
+                    element.style.height = `${overlay.height}px`;
+                    // Set img to fill the container
+                    img.style.width = '100%';
+                    img.style.height = '100%';
                     img.style.transform = '';
-                    img.style.transformOrigin = 'center center';
                 } else {
-                    img.classList.remove('spinning');
-                    // Restore to original size with transform scale
+                    element.classList.remove('spinning');
+                    element.style.animationDuration = '';
+                    element.style.width = '';
+                    element.style.height = '';
+                    // Restore img to original size with transform scale
                     img.style.width = '';
                     img.style.height = '';
                     img.style.transform = `scale(${overlay.scale})`;
-                    img.style.transformOrigin = 'top left';
                 }
 
                 // Update resize handle position
@@ -860,10 +864,9 @@
 
             if (overlay && element) {
                 overlay.spinSpeed = speed;
-                const img = element.querySelector('img');
 
                 if (overlay.spinning) {
-                    img.style.animationDuration = `${speed}s`;
+                    element.style.animationDuration = `${speed}s`;
                 }
 
                 generateCSS();
