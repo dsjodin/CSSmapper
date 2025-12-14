@@ -391,11 +391,11 @@
         }
 
         @keyframes spin {
-            from { transform: scale(var(--overlay-scale, 1)) rotate(0deg); }
-            to { transform: scale(var(--overlay-scale, 1)) rotate(360deg); }
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
-        .overlay.spinning {
+        .overlay img.spinning {
             animation: spin linear infinite;
             transform-origin: center;
         }
@@ -837,8 +837,9 @@
 
                 const img = element.querySelector('img');
                 if (overlay.spinning) {
-                    // Update CSS variable for spinning animation
-                    element.style.setProperty('--overlay-scale', scale);
+                    // Update explicit dimensions for spinning
+                    img.style.width = `${overlay.width}px`;
+                    img.style.height = `${overlay.height}px`;
                 } else {
                     img.style.transform = `scale(${scale})`;
                 }
@@ -1003,18 +1004,19 @@
                 const img = element.querySelector('img');
 
                 if (spinning) {
-                    // Apply spinning to the overlay div itself
-                    element.classList.add('spinning');
-                    element.style.animationDuration = `${overlay.spinSpeed}s`;
-                    // Set scale as CSS variable for the animation
-                    element.style.setProperty('--overlay-scale', overlay.scale);
-                    // Remove any transform on img
+                    // Apply spinning to the img with explicit scaled dimensions
+                    img.classList.add('spinning');
+                    img.style.animationDuration = `${overlay.spinSpeed}s`;
+                    // Set explicit width/height instead of transform scale
+                    img.style.width = `${overlay.width}px`;
+                    img.style.height = `${overlay.height}px`;
                     img.style.transform = '';
                 } else {
-                    element.classList.remove('spinning');
-                    element.style.animationDuration = '';
-                    element.style.removeProperty('--overlay-scale');
-                    // Restore img transform scale
+                    img.classList.remove('spinning');
+                    img.style.animationDuration = '';
+                    // Restore transform scale approach
+                    img.style.width = '';
+                    img.style.height = '';
                     img.style.transform = `scale(${overlay.scale})`;
                 }
 
@@ -1037,7 +1039,8 @@
                 overlay.spinSpeed = speed;
 
                 if (overlay.spinning) {
-                    element.style.animationDuration = `${speed}s`;
+                    const img = element.querySelector('img');
+                    img.style.animationDuration = `${speed}s`;
                 }
 
                 generateCSS();
@@ -1138,8 +1141,8 @@
             if (hasSpinning) {
                 css += `/* Rotating animation for pumps */\n`;
                 css += `@keyframes spin {\n`;
-                css += `    from { transform: scale(var(--overlay-scale, 1)) rotate(0deg); }\n`;
-                css += `    to { transform: scale(var(--overlay-scale, 1)) rotate(360deg); }\n`;
+                css += `    from { transform: rotate(0deg); }\n`;
+                css += `    to { transform: rotate(360deg); }\n`;
                 css += `}\n\n`;
             }
 
@@ -1178,7 +1181,6 @@
                 css += `.overlay-${name}.active {\n`;
                 css += `    display: block;\n`;
                 if (o.spinning) {
-                    css += `    --overlay-scale: ${scale};\n`;
                     css += `    transform-origin: center;\n`;
                     css += `    animation: spin ${o.spinSpeed}s linear infinite;\n`;
                 }
