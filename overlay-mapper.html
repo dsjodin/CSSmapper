@@ -397,6 +397,7 @@
 
         .overlay img.spinning {
             animation: spin linear infinite;
+            transform-origin: center center;
         }
     </style>
 </head>
@@ -973,6 +974,7 @@
                 css += `    display: block;\n`;
                 if (o.spinning) {
                     css += `    animation: spin ${o.spinSpeed}s linear infinite;\n`;
+                    css += `    transform-origin: center center;\n`;
                 }
                 css += `}\n\n`;
             });
